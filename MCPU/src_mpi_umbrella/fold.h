@@ -364,13 +364,13 @@ void Fold(void) {
       fflush(STATUS);
       
       
-      fprintf(STATUS, "The disulfide pairs are, in zero indexing: \t");
-      for (kkk=0; kkk<N_constraints; kkk++){
-      if (disulfide_pairs_attempt[kkk]==1){
-      	fprintf(STATUS, "%i and %i \t", constraint_array[kkk][0],constraint_array[kkk][1]);
-      } 
-  	  }
-  	  fprintf(STATUS, "\n");
+      /* fprintf(STATUS, "The disulfide pairs are, in zero indexing: \t"); */
+      /* for (kkk=0; kkk<N_constraints; kkk++){ */
+      /* if (disulfide_pairs_attempt[kkk]==1){ */
+      /* 	fprintf(STATUS, "%i and %i \t", constraint_array[kkk][0],constraint_array[kkk][1]); */
+      /* }  */
+      /* 	  } */
+      /* 	  fprintf(STATUS, "\n"); */
       
       n_sidechain_accepted = 0;
       naccepted = 0;

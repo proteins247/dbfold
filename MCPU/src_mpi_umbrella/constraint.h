@@ -122,7 +122,7 @@ float Compute_constraint_energy (const struct residue *residues, const struct at
 
     //disulfides = (int*)calloc(N_cysteines,sizeof(int)); //Is residue i participating in disulfide?
 	
-    int disulfides[1000] = {0}; //Tels you whether each residue is participating in a disulfide
+    /* int disulfides[1000] = {0}; //Tels you whether each residue is participating in a disulfide */
 	
     mean_constraint_distance = 0;
 	
@@ -130,8 +130,6 @@ float Compute_constraint_energy (const struct residue *residues, const struct at
 	res1 = constraint_array[i][0];
 	res2 = constraint_array[i][1];
 	weight = constraint_weights[i];
-		
-	//To do, check that neither i nor j are already forming a disulfide bond before proceeding
 		
 	atomi = residues[res1].CB;
 	if (atomi == -999) {
@@ -160,62 +158,28 @@ float Compute_constraint_energy (const struct residue *residues, const struct at
 		     (yi-yj)*(yi-yj) +
 		     (zi-zj)*(zi-zj)));
 
-	/* if (mcstep % MC_PRINT_STEPS == 0) */
-	/* { */
-	/*     fprintf(STATUS, "disulfide %d res1 %5d %5.2f %5.2f %5.2f res2 %5d %5.2f %5.2f %5.2f dist %5.2f\n", */
-	/* 	    i, res1, xi, yi, zi, res2, xj, yj, zj, dist); */
-	/* } */
-
+	/* Note we don't use this var */
 	distances[i] = dist;
+	/* Note we don't use this var */
 	disulfide_pairs_attempt[i] = 0;  //for now, reset the value of disulfide..we will figure out later if a disulfide is present
+	
+	weight = constraint_weights[i];
+	if (dist <= 2.9) {
+	    constraint_energy += weight * k_constraint
+		* ((dist - 2.9) * (dist - 2.9) - 1);
+	}
+	else if (dist > 2.9 && dist <= 4.6) {
+	    constraint_energy += weight * k_constraint * -1;
+	}
+	else if (dist > 4.6 && dist <= 5.6) {
+	    constraint_energy += weight * k_constraint
+		* ((dist - 4.6) * (dist - 4.6) - 1);
+	}
+	else {
+	    constraint_energy += weight * k_constraint * (0.05)
+		* (dist - 5.6);
+	}
     }
-	
-    //if (mcstep==0){
-    //fprintf(STATUS, "Let's check on our variable distances at its initialization \n");
-    //for (zzz=0; zzz<N_constraints; zzz++){
-    //	fprintf(STATUS, "%i and %i: %f \n",  constraint_array[zzz][0],constraint_array[zzz][1], distances[zzz]);
-    //}
-    //}
-	
-    /* Under this implementation of a potential mimicking a disulfide
-     * bond that's possible breakable, a particular residue can only
-     * be involved in one disulfide bond. This is automatically the
-     * case if the user-specified constraints do not overlap. In the
-     * case of residues with the possibility of bonding to more than 1
-     * other residue, which residue is chosen for interaction is by
-     * closest distance.
-     *
-     * The disulfide potential is a flat-bottomed potential of depth
-     * -k_constraint (* weight) and flat region 2.9 to 4.6 A. Outside
-     * the flat region, the potential quadratically increases but is
-     * set to 0 beyond 5.6 A.
-     */
-	
-    min_ind = Argmin(distances);
-    min_dis = distances[min_ind];
-	
-    while (min_dis <= 5.6) {
-	I = constraint_array[min_ind][0];
-	J = constraint_array[min_ind][1];
-	//if (mcstep==0){
-	//	fprintf(STATUS, "The current min_dist is %f and it involves residues %i and %i \n", min_dis, I, J );
-	//}
-	if (disulfides[I] == 0 && disulfides[J] == 0) { //neither residue is already engaged in disulfide
-	    disulfides[I] = 1; //well, now they are!
-	    disulfides[J] = 1;
-	    disulfide_pairs_attempt[min_ind] = 1;
-	    weight = constraint_weights[min_ind];
-	    if (min_dis > 2.9 && min_dis < 4.6) {
-		constraint_energy += weight * k_constraint * -1;
-	    }
-	    else if (min_dis <= 2.9) {
-		constraint_energy += weight * k_constraint
-		    * ((min_dis - 2.9) * (min_dis - 2.9) - 1);
-	    }
-	    else {
-		constraint_energy += weight * k_constraint
-		    * ((min_dis - 4.6) * (min_dis - 4.6) - 1);
-	    }
 
 	    /* if (mcstep % MC_PRINT_STEPS == 0) */
 	    /* { */
@@ -223,11 +187,9 @@ float Compute_constraint_energy (const struct residue *residues, const struct at
 	    /* 		min_ind, I, J, min_dis); */
 	    /* } */
 
-	}
-	distances[min_ind] = INFINITY;
-	min_ind = Argmin(distances);
-	min_dis = distances[min_ind];
-    }
+	/* distances[min_ind] = INFINITY; */
+	/* min_ind = Argmin(distances); */
+	/* min_dis = distances[min_ind]; */
 	
     //if (mcstep==0){
     //fprintf(STATUS, "Let's check on our variable disulfide_pairs_attempt");
