@@ -173,6 +173,12 @@ void Fold(void) {
 
         if (myrank == 0) {  //node 0 will mediate the exchange
           for (irep=0; irep<MAX_EXCHANGE; irep++) {
+
+	      /* Choose replica pair for potential exchange: */
+	      /* Note, there is no guard against the same replica
+	       * being selected more than once. In such a case, an
+	       * exchange could be undone (if accepted the first time)
+	       * or be attempted twice. */
             sel_num = (int) (threefryrand()*(nprocs-1)); /*Who initiates exchange?*/
             /*AB: This was previously nprocs-2, but I saw no reason why second to last node shouldn't be able to initiate exchange
             When we say (int)*random*(n_procs-1), we keep in mind that (int) applies a floor function, so this will draw valeus between 0 and nprocs-2 
@@ -207,6 +213,7 @@ void Fold(void) {
             //fprintf(STATUS, "irep : %d, sel_num : %d\n", irep, sel_num);
             //fflush(STATUS);
 
+	    /* Decide whether exchange will take place: */
             delta_E = Enode[partner]-Enode[sel_num];
             delta_T = 1.0/Tnode[partner]-1.0/Tnode[sel_num];
             delta_N = k_bias*((Nnode[partner]-Cnode[sel_num])*(Nnode[partner]-Cnode[sel_num]) - (Nnode[sel_num]-Cnode[sel_num])*(Nnode[sel_num]-Cnode[sel_num]) ) + k_bias *(  (Nnode[sel_num]-Cnode[partner])*(Nnode[sel_num]-Cnode[partner]) - (Nnode[partner]-Cnode[partner])*(Nnode[partner]-Cnode[partner]) );
@@ -223,17 +230,25 @@ void Fold(void) {
               Nnode[sel_num] = Nnode[partner];
               Nnode[partner] = ntmp;  
               //accepted_replica[sel_num][partner]++;            
+	      /* Update count accordingly */
+	      /* These counts are for exchanges upward (in temp or
+	       * toward fewer native contacts). i.e. the counts of
+	       * accept/reject are for the bottom partner. So you'll
+	       * see 0 and 0 for the highest node (highest temperature
+	       * and lowest native contact setpoint) */
               accepted_replica[sel_num]++;
               //fprintf(STATUS, "Node %d successfully exchanged with Node %d, with a delta_all of %8.3f \n", sel_num, partner, delta_all);
             }
             else {
               //rejected_replica[sel_num][partner]++; 
+	      /* Update count accordingly */
               rejected_replica[sel_num]++;
               //fprintf(STATUS, "Node %d UNSUCCESSFULLY exchanged with Node %d, with a delta_all of %8.3f \n", sel_num, partner, delta_all);
             }
           }
         }
 
+	/* Let all nodes know; bcast from rank 0 */
         ierr = MPI_Bcast(replica_index, nprocs, MPI_INT, 0, mpi_world_comm);
         ierr = MPI_Bcast(Enode, nprocs, MPI_FLOAT, 0, mpi_world_comm);
         ierr = MPI_Bcast(Nnode, nprocs, MPI_INT, 0, mpi_world_comm);
@@ -243,17 +258,21 @@ void Fold(void) {
         //fprintf(STATUS, "Replica Index\n");
         //for (i=0; i<nprocs; i++) fprintf(STATUS, "%5d %5d %8.3f\n", i, replica_index[i], Enode[i]);
 
-		if (mcstep % MC_PRINT_STEPS == 0) {
-			fprintf(STATUS, "RPLC %10ld E : %8.3f Natives : %d FROM %2d(T=%5.3f,setpoint=%d ) E : %8.3f, Natives  :  %d, accepted : %5d, rejected : %5d  \n", mcstep, E, natives, replica_index[myrank], Tnode[replica_index[myrank]], Cnode[replica_index[myrank]],Enode[myrank], Nnode[myrank], accepted_replica[myrank], rejected_replica[myrank]);
+	/* Print output if it's time */
+	if (mcstep % MC_PRINT_STEPS == 0) {
+	    fprintf(STATUS, "RPLC %10ld E : %8.3f Natives : %d FROM %2d(T=%5.3f,setpoint=%d ) E : %8.3f, Natives  :  %d, accepted : %5d, rejected : %5d  \n", mcstep, E, natives, replica_index[myrank], Tnode[replica_index[myrank]], Cnode[replica_index[myrank]],Enode[myrank], Nnode[myrank], accepted_replica[myrank], rejected_replica[myrank]);
         	//fprintf(STATUS, "RPLC %10ld E : %8.3f Natives : %d FROM %2d(T=%5.3f,setpoint=%d ) E : %8.3f, Natives  :  %d, accepted : %5d, rejected : %5d  \n", mcstep, E, natives, replica_index[myrank], Tnode[replica_index[myrank]], Cnode[replica_index[myrank]],Enode[myrank], Nnode[myrank], accepted_replica[myrank][replica_index[myrank]], rejected_replica[myrank][replica_index[myrank]]);
         }
         fflush(STATUS);
 
+	/* Actually do the exchange now */
         for (i=0; i<natoms; i++) {   //Temporary arrays to store all atom coordinates as they stood before any exchanges happened...these will be transferred later
           buf_out[3*i] = native[i].xyz.x;
           buf_out[3*i+1] = native[i].xyz.y;
           buf_out[3*i+2] = native[i].xyz.z;
         }
+
+	/* Keep in mind the following process is being carried out in parallel */
 
         for (i=0; i<nprocs; i++){ //normally, replica_index[i] should equal i, unless an exchange occurred
           if (replica_index[i] != i) {  //there is a discrepancy, indicating an exchange occurred...for instance, replica_index[5]=6 and replica_index[6]=5
