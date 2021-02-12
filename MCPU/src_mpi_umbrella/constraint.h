@@ -149,7 +149,7 @@ float Compute_constraint_energy (const struct residue *residues, const struct at
 	    /* GLY CB gets assigned index -999.
 	     *  In this case we will use the CA.
 	     */
-	    atomj = residues[res1].CA;
+	    atomj = residues[res2].CA;
 	}
       	xj = atoms[atomj].xyz.x;
       	yj = atoms[atomj].xyz.y;
