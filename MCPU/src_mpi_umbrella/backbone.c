@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
   //fprintf(STATUS, "nprocs = %d, myrank = %d\n", nprocs, myrank);
   fprintf(STATUS, "---GENERAL---\n");
   fprintf(STATUS, "  seed:\t\t%ld\n\n", seed);
+  fprintf(STATUS, "  VERSION: flat-bottom harmonic disulfide potential for all distances\n");
   fflush(STATUS);
 
 
