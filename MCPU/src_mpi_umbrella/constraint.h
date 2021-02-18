@@ -164,20 +164,18 @@ float Compute_constraint_energy (const struct residue *residues, const struct at
 	disulfide_pairs_attempt[i] = 0;  //for now, reset the value of disulfide..we will figure out later if a disulfide is present
 	
 	weight = constraint_weights[i];
+	/* flat-bottom harmonic which returns -k_constraint (* weight)
+	 * for distances within the region. */
 	if (dist <= 2.9) {
 	    constraint_energy += weight * k_constraint
 		* ((dist - 2.9) * (dist - 2.9) - 1);
 	}
-	else if (dist > 2.9 && dist <= 4.6) {
+	else if (dist <= 4.6) {
 	    constraint_energy += weight * k_constraint * -1;
 	}
-	else if (dist > 4.6 && dist <= 5.6) {
+	else {  /* (dist > 4.6) */
 	    constraint_energy += weight * k_constraint
 		* ((dist - 4.6) * (dist - 4.6) - 1);
-	}
-	else {
-	    constraint_energy += weight * k_constraint * (0.05)
-		* (dist - 5.6);
 	}
     }
 
