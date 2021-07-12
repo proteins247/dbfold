@@ -326,6 +326,7 @@ MPI_Comm mpi_world_comm;
 MPI_Status mpi_status;
 int nprocs, myrank, sel_num, ierr;
 int *accepted_replica, *rejected_replica, *replica_index;
+int *attempted_replica;		/* VZ added 2-18 */
 //int **accepted_replica, **rejected_replica, *replica_index; //AB changed to 2D array
 float *Enode, *Tnode;
 int  *Nnode, *Cnode;

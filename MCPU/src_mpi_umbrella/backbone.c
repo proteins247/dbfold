@@ -91,6 +91,10 @@ int main(int argc, char *argv[]) {
   fprintf(STATUS, "Total side torsion no.: %4d\n\n", total_ntorsions);
   Fold();
 
+  /* vz: We ought to free memory we allocated, but I guess the program
+   * will exit soon, and during program run, there aren't memory
+   * leaks. */
+
   MPI_Finalize();
   return 0;
 }

@@ -166,8 +166,11 @@ void Fold(void) {
     /******** replica exchange ****************/
     if (mcstep % MC_REPLICA_STEPS == 0) {
 		//ierr=MPI_Barrier(mpi_world_comm);  //Added by AB to ensure synchronization--seems like things were getting out of sync for some reason?
-        for (i=0; i<nprocs; i++)
-          replica_index[i] = i;
+        for (i=0; i<nprocs; i++) {
+	    replica_index[i] = i;
+	    attempted_replica[i] = 0;
+	}
+
         ierr = MPI_Allgather(&E, 1, MPI_FLOAT, Enode, 1, MPI_FLOAT, mpi_world_comm);
         ierr = MPI_Allgather(&natives, 1, MPI_INT, Nnode, 1, MPI_INT, mpi_world_comm);
 
@@ -209,6 +212,12 @@ void Fold(void) {
             		partner=sel_num+NODES_PER_TEMP;
             	}
             }
+
+	    if (attempted_replica[partner] == 1) {
+		/* Already some replica tried to exchange with partner */
+		continue;
+	    }
+	    attempted_replica[partner] = 1;
 
             //fprintf(STATUS, "irep : %d, sel_num : %d\n", irep, sel_num);
             //fflush(STATUS);

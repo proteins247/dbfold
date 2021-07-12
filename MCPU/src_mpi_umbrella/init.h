@@ -1549,19 +1549,19 @@ void SetProgramOptions(int argc, char *argv[]) {
   /* SET name of PDB and log file  */
   
   if (umbrella==1){
-  	sprintf(std_file, "%s_T_%5.3f_%d.log", std_prefix, MC_TEMP, number_of_contacts_setpoint);
-  	sprintf(pdb_out_file+ls, "_%5.3f_%d", MC_TEMP, number_of_contacts_setpoint);
-  	}
+      sprintf(std_file, "%s_T_%5.3f_%d.log", std_prefix, MC_TEMP, number_of_contacts_setpoint);
+      sprintf(pdb_out_file+ls, "_%5.3f_%d", MC_TEMP, number_of_contacts_setpoint);
+  }
   else {
-  	k_bias=0;  //regardless of what we had inputted for k_bias, if umbrella is off, we don't want any bias!!
-  	if (NODES_PER_TEMP==1 && my_rank_offset==0){
-  		sprintf(std_file, "%s_T_%5.3f.log", std_prefix, MC_TEMP);
-  		sprintf(pdb_out_file+ls, "_%5.3f", MC_TEMP);
-  	}
-  	else {
-  		sprintf(std_file,"%s_T_%5.3f_%d.log",std_prefix, MC_TEMP, myrank+my_rank_offset);
-  		sprintf(pdb_out_file+ls,"_%5.3f_%d", MC_TEMP, myrank+my_rank_offset);
-  	}
+      k_bias=0;  //regardless of what we had inputted for k_bias, if umbrella is off, we don't want any bias!!
+      if (NODES_PER_TEMP==1 && my_rank_offset==0){
+	  sprintf(std_file, "%s_T_%5.3f.log", std_prefix, MC_TEMP);
+	  sprintf(pdb_out_file+ls, "_%5.3f", MC_TEMP);
+      }
+      else {
+	  sprintf(std_file,"%s_T_%5.3f_%d.log",std_prefix, MC_TEMP, myrank+my_rank_offset);
+	  sprintf(pdb_out_file+ls,"_%5.3f_%d", MC_TEMP, myrank+my_rank_offset);
+      }
   }
 
   /* OPEN log file  for business*/
@@ -1592,6 +1592,7 @@ void SetProgramOptions(int argc, char *argv[]) {
   //Previously:
   accepted_replica = (int *) calloc(nprocs, sizeof(int));
   rejected_replica = (int *) calloc(nprocs, sizeof(int));
+  attempted_replica = (int *) calloc(nprocs, sizeof(int));
   
   for (l=0; l<nprocs; l++) {
   	accepted_replica[l] = rejected_replica[l] = 0;
