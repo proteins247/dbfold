@@ -325,6 +325,7 @@ char *yang_not_rotated;
 MPI_Comm mpi_world_comm;
 MPI_Status mpi_status;
 int nprocs, myrank, sel_num, ierr;
+int current_replica;		/* Added 2021-07-12: to track a set of coordinates across replica space */
 int *accepted_replica, *rejected_replica, *replica_index;
 int *attempted_replica;		/* VZ added 2-18 */
 //int **accepted_replica, **rejected_replica, *replica_index; //AB changed to 2D array

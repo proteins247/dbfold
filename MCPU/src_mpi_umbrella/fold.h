@@ -166,6 +166,7 @@ void Fold(void) {
     /******** replica exchange ****************/
     if (mcstep % MC_REPLICA_STEPS == 0) {
 		//ierr=MPI_Barrier(mpi_world_comm);  //Added by AB to ensure synchronization--seems like things were getting out of sync for some reason?
+
         for (i=0; i<nprocs; i++) {
 	    replica_index[i] = i;
 	    attempted_replica[i] = 0;
@@ -178,10 +179,6 @@ void Fold(void) {
           for (irep=0; irep<MAX_EXCHANGE; irep++) {
 
 	      /* Choose replica pair for potential exchange: */
-	      /* Note, there is no guard against the same replica
-	       * being selected more than once. In such a case, an
-	       * exchange could be undone (if accepted the first time)
-	       * or be attempted twice. */
             sel_num = (int) (threefryrand()*(nprocs-1)); /*Who initiates exchange?*/
             /*AB: This was previously nprocs-2, but I saw no reason why second to last node shouldn't be able to initiate exchange
             When we say (int)*random*(n_procs-1), we keep in mind that (int) applies a floor function, so this will draw valeus between 0 and nprocs-2 
@@ -257,6 +254,11 @@ void Fold(void) {
           }
         }
 
+	/* At this point, all exchanges have been
+	 * decided. `replica_index` holds the new order of replicas,
+	 * e.g. `replica_index[i]` indicates which current replica will
+	 * go to replica i. */
+
 	/* Let all nodes know; bcast from rank 0 */
         ierr = MPI_Bcast(replica_index, nprocs, MPI_INT, 0, mpi_world_comm);
         ierr = MPI_Bcast(Enode, nprocs, MPI_FLOAT, 0, mpi_world_comm);
@@ -281,17 +283,32 @@ void Fold(void) {
           buf_out[3*i+2] = native[i].xyz.z;
         }
 
-	/* Keep in mind the following process is being carried out in parallel */
+	/* Keep in mind the following process is being carried out in
+	 * parallel. */
 
-        for (i=0; i<nprocs; i++){ //normally, replica_index[i] should equal i, unless an exchange occurred
-          if (replica_index[i] != i) {  //there is a discrepancy, indicating an exchange occurred...for instance, replica_index[5]=6 and replica_index[6]=5
-            if (myrank == i) {  //For instance, if my rank is 6 and replica_index[6]=5, then I received an exchange from node 5
-              ierr = MPI_Recv(buf_in, 3*natoms, MPI_FLOAT, replica_index[i], (i+2), mpi_world_comm, &mpi_status);  //now, receive the atomic coordinates from my partner
-            } else if (myrank == replica_index[i]) {   //For instance, if my rank is 5 and replica_index[6]=5, then this means I gave an exchange to node 6
-              ierr = MPI_Send(buf_out, 3*natoms, MPI_FLOAT, i, (i+2), mpi_world_comm);  //give my coordinates to my partner 
-            }
-          }
+	/* Temporary holder of the coordinate replica number. i.e.,
+	 * the original replica number (from t = 0) of the coordinates
+	 * currently held by this replica is `current_replica`. */
+	int receive_replicano = current_replica;
+
+        for (i = 0; i < nprocs; i++) { //normally, replica_index[i] should equal i, unless an exchange occurred
+	    if (replica_index[i] != i) {  //there is a discrepancy, indicating an exchange occurred...for instance, replica_index[5]=6 and replica_index[6]=5
+		if (myrank == i) {  //For instance, if my rank is 6 and replica_index[6]=5, then I received an exchange from node 5
+		    ierr = MPI_Recv(buf_in, 3*natoms, MPI_FLOAT, replica_index[i], (i+2), mpi_world_comm, &mpi_status);  //now, receive the atomic coordinates from my partner
+		    /* Also receive the "replica number" of the partner */
+		    ierr = MPI_Recv(&receive_replicano, 1, MPI_INT,
+				    replica_index[i], (i+3), mpi_world_comm,
+				    &mpi_status);
+		} else if (myrank == replica_index[i]) {   //For instance, if my rank is 5 and replica_index[6]=5, then this means I gave an exchange to node 6
+		    ierr = MPI_Send(buf_out, 3*natoms, MPI_FLOAT, i, (i+2), mpi_world_comm);  //give my coordinates to my partner
+		    /* Send the "replica number" of this replica */
+		    ierr = MPI_Send(&current_replica, 1, MPI_INT, i, (i+3),
+				    mpi_world_comm);
+		}
+	    }
         }
+	current_replica = receive_replicano;
+	fprintf(STATUS, "REPNO %10ld %d \n", mcstep, current_replica);
 
         if (replica_index[myrank] != myrank) { //if exchange occurred, transfer temporary data to real-deal atomic data structure, and recompute energies with the updated atomic info
           for (i=0; i<natoms; i++) {

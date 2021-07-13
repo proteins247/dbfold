@@ -19,6 +19,8 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(mpi_world_comm, &nprocs);
   MPI_Comm_rank(mpi_world_comm, &myrank);
 
+  /* current_replica tracks a set of coordinates across replica space */
+  current_replica = myrank;
 
   /* initialize data */
   SetProgramOptions(argc, argv);
