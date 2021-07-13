@@ -308,7 +308,9 @@ void Fold(void) {
 	    }
         }
 	current_replica = receive_replicano;
-	fprintf(STATUS, "REPNO %10ld %d \n", mcstep, current_replica);
+	if (mcstep % MC_PRINT_STEPS == 0) {
+	    fprintf(STATUS, "REPNO %10ld %d \n", mcstep, current_replica);
+	}
 
         if (replica_index[myrank] != myrank) { //if exchange occurred, transfer temporary data to real-deal atomic data structure, and recompute energies with the updated atomic info
           for (i=0; i<natoms; i++) {
